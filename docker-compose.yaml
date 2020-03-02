@@ -1,0 +1,18 @@
+version: "3"
+services:
+  workspace:
+    tty: true
+    working_dir: /root
+    entrypoint: bash
+    build:
+      context: .
+      dockerfile: Dockerfile
+    expose:
+      - 80
+    ports:
+      - 8080:80
+    environment:
+      PORT: 80
+    volumes:
+      - ./go/src:/root/go/src
+      - /var/run/docker.sock:/var/run/docker.sock
