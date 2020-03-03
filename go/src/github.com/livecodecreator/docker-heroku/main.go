@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -11,9 +12,8 @@ import (
 
 func main() {
 	port := os.Getenv("PORT")
-	fmt.Println("OK")
 	r := mux.NewRouter()
-	r.HandleFunc("/", HomeHandler)
+	r.HandleFunc("/test", DefaultHandler)
 	http.Handle("/", r)
 	err := http.ListenAndServe(fmt.Sprintf(":%s", port), r)
 	if err != nil {
@@ -21,10 +21,23 @@ func main() {
 	}
 }
 
-// HomeHandler is
-func HomeHandler(w http.ResponseWriter, r *http.Request) {
-	log.Printf("request url: %s\n", r.URL)
+// DefaultHandler is
+func DefaultHandler(w http.ResponseWriter, r *http.Request) {
+	log.Printf("request method: %v\n", r.Method)
+	log.Printf("request url scheme: %v\n", r.URL.Scheme)
+	log.Printf("request url host: %v\n", r.URL.Host)
+	log.Printf("request url path: %v\n", r.URL.Path)
+	log.Printf("request url raw query: %v\n", r.URL.RawQuery)
+
+	for k, v := range r.Header {
+		log.Printf("request header: %v: %v\n", k, v)
+	}
+
+	log.Printf("request body:\n")
+	defer r.Body.Close()
+	b, _ := ioutil.ReadAll(r.Body)
+	log.Println(string(b))
+
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "Hello World")
-	fmt.Printf("%v\n", r.Body)
+	fmt.Fprintf(w, "OK")
 }
