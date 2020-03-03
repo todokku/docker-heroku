@@ -13,6 +13,8 @@ import (
 
 var logger *log.Logger
 
+var lastStatus string
+
 const (
 	slackEventTypeURLVerification = "url_verification"
 	slackEventTypeCallback        = "event_callback"
@@ -41,6 +43,11 @@ type SlackEventCallbackRequest struct {
 type SlackEventCallbackEvent struct {
 	Type    string `json:"type"`
 	Message string `json:"text"`
+}
+
+// StatusResponse is
+type StatusResponse struct {
+	LastStatus string `json:"lastStatus"`
 }
 
 // SlackHandler is
@@ -80,12 +87,12 @@ func slackChallengeRequest(w http.ResponseWriter, r *http.Request, b []byte) boo
 	}
 
 	if req.Type != slackEventTypeURLVerification {
-		logger.Printf("type != %v\n", slackEventTypeURLVerification)
+		logger.Printf("type is not %v\n", slackEventTypeURLVerification)
 		return false
 	}
 
-	scres := SlackChallengeResponse{Challenge: req.Challenge}
-	d, err := json.Marshal(scres)
+	res := SlackChallengeResponse{Challenge: req.Challenge}
+	d, err := json.Marshal(res)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		logger.Printf("%v\n", err)
@@ -98,7 +105,6 @@ func slackChallengeRequest(w http.ResponseWriter, r *http.Request, b []byte) boo
 }
 
 func slackEventCallbackRequest(w http.ResponseWriter, r *http.Request, b []byte) bool {
-	logger.Println(string(b))
 
 	var req SlackEventCallbackRequest
 	err := json.Unmarshal(b, &req)
@@ -111,21 +117,43 @@ func slackEventCallbackRequest(w http.ResponseWriter, r *http.Request, b []byte)
 	}
 
 	if req.Type != slackEventTypeCallback {
-		logger.Printf("type != %v\n", slackEventTypeCallback)
+		logger.Printf("type is not %v\n", slackEventTypeCallback)
 		return false
 	}
 
 	if req.Event.Type != slackEventCallbackTypeMessage {
 		w.WriteHeader(http.StatusInternalServerError)
-		logger.Printf("event.type != %v\n", slackEventCallbackTypeMessage)
-		logger.Printf("event = %+v¥n", req.Event)
+		logger.Printf("event.type is not %v\n", slackEventCallbackTypeMessage)
+		logger.Printf("event.type: %v¥n", req.Event.Type)
 		return true
 	}
 
-	log.Printf("event.message: %v\n", req.Event.Message)
+	logger.Printf("event.message: %v\n", req.Event.Message)
+
+	if req.Event.Message == "ok" {
+		lastStatus = "LAST_STATUS_OK"
+	}
+
+	if req.Event.Message == "ng" {
+		lastStatus = "LAST_STATUS_NG"
+	}
 
 	w.WriteHeader(http.StatusOK)
 	return true
+}
+
+// StatusHandler is
+func StatusHandler(w http.ResponseWriter, r *http.Request) {
+
+	res := StatusResponse{LastStatus: lastStatus}
+	d, err := json.Marshal(res)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		logger.Printf("%v\n", err)
+	}
+
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintln(w, string(d))
 }
 
 // ResponseLoggerMiddleware is
@@ -162,6 +190,7 @@ func main() {
 	r.Use(ResponseLoggerMiddleware)
 	r.HandleFunc("/", DefaultHandler)
 	r.HandleFunc("/slack", SlackHandler)
+	r.HandleFunc("/status", StatusHandler)
 	r.HandleFunc("/{wildcard}", DefaultHandler)
 	http.Handle("/", r)
 	err := http.ListenAndServe(fmt.Sprintf(":%s", port), r)
