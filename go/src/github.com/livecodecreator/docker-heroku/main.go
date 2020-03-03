@@ -13,7 +13,7 @@ import (
 func main() {
 	port := os.Getenv("PORT")
 	r := mux.NewRouter()
-	r.HandleFunc("/test", DefaultHandler)
+	r.HandleFunc("/{wildcard}", DefaultHandler)
 	http.Handle("/", r)
 	err := http.ListenAndServe(fmt.Sprintf(":%s", port), r)
 	if err != nil {
@@ -24,6 +24,7 @@ func main() {
 // DefaultHandler is
 func DefaultHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("request method: %v\n", r.Method)
+	log.Printf("request requestURI: %v\n", r.RequestURI)
 	log.Printf("request url scheme: %v\n", r.URL.Scheme)
 	log.Printf("request url host: %v\n", r.URL.Host)
 	log.Printf("request url path: %v\n", r.URL.Path)
