@@ -37,16 +37,93 @@ type SlackChallengeResponse struct {
 	Challenge string `json:"challenge"`
 }
 
+// SlackEventCallbackRequest is
+type SlackEventCallbackRequest struct {
+	Type  string                  `json:"type"`
+	Event SlackEventCallbackEvent `json:event`
+}
+
+// SlackEventCallbackEvent is
+type SlackEventCallbackEvent struct {
+	Type    string `json:"type"`
+	Message string `json:"text"`
+}
+
 // SlackHandler is
 func SlackHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
-	b, _ := ioutil.ReadAll(r.Body)
-	var screq SlackChallengeRequest
-	json.Unmarshal(b, &screq)
-	scres := SlackChallengeResponse{Challenge: screq.Challenge}
-	dat, _ := json.Marshal(scres)
+	b, err := ioutil.ReadAll(r.Body)
+
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintln(w, "E0001")
+		log.Println("E0001")
+		return
+	}
+
+	if slackChallengeRequest(w, r, b) {
+		return
+	}
+
+	if slackEventCallbackRequest(w, r, b) {
+		return
+	}
+
+	w.WriteHeader(http.StatusInternalServerError)
+	fmt.Fprintln(w, "E0000")
+	log.Println("E0000")
+	return
+}
+
+func slackChallengeRequest(w http.ResponseWriter, r *http.Request, b []byte) bool {
+	var req SlackChallengeRequest
+	err := json.Unmarshal(b, &req)
+	if err != nil {
+		return false
+	}
+
+	if req.Type != "url_verification" {
+		return false
+	}
+	log.Println("Execute ChallengeRequest")
+
+	scres := SlackChallengeResponse{Challenge: req.Challenge}
+	d, err := json.Marshal(scres)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintln(w, "E1001")
+		log.Println("E1001")
+		return true
+	}
+
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintln(w, string(dat))
+	fmt.Fprintln(w, string(d))
+	return true
+}
+
+func slackEventCallbackRequest(w http.ResponseWriter, r *http.Request, b []byte) bool {
+	var req SlackEventCallbackRequest
+	err := json.Unmarshal(b, &req)
+	if err != nil {
+		return false
+	}
+
+	if req.Type != "event_callback" {
+		return false
+	}
+	log.Println("Execute EventCallbackRequest")
+
+	if req.Event.Type != "text" {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintln(w, "E2001")
+		log.Println("E2001")
+		return true
+	}
+
+	log.Printf("SlackCallbackMessage: %v\n", req.Event.Message)
+
+	w.WriteHeader(http.StatusOK)
+	return true
 }
 
 // ResponseLoggerMiddleware is
