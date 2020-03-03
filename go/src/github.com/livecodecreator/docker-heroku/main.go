@@ -28,6 +28,7 @@ func main() {
 const (
 	slackEventTypeURLVerification = "url_verification"
 	slackEventTypeCallback        = "event_callback"
+	slackEventCallbackTypeText    = "text"
 )
 
 // SlackChallengeRequest is
@@ -84,10 +85,12 @@ func slackChallengeRequest(w http.ResponseWriter, r *http.Request, b []byte) boo
 	var req SlackChallengeRequest
 	err := json.Unmarshal(b, &req)
 	if err != nil {
+		log.Println("E100A")
 		return false
 	}
 
 	if req.Type != slackEventTypeURLVerification {
+		log.Println("E100B")
 		return false
 	}
 	log.Println("Execute ChallengeRequest")
@@ -110,15 +113,17 @@ func slackEventCallbackRequest(w http.ResponseWriter, r *http.Request, b []byte)
 	var req SlackEventCallbackRequest
 	err := json.Unmarshal(b, &req)
 	if err != nil {
+		log.Println("E200A")
 		return false
 	}
 
 	if req.Type != slackEventTypeCallback {
+		log.Println("E100B")
 		return false
 	}
 	log.Println("Execute EventCallbackRequest")
 
-	if req.Event.Type != "text" {
+	if req.Event.Type != slackEventCallbackTypeText {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintln(w, "E2001")
 		log.Println("E2001")
