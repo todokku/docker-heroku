@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -151,8 +152,9 @@ func ResponseLoggerMiddleware(next http.Handler) http.Handler {
 		}
 
 		log.Printf("request body:\n")
-		defer r.Body.Close()
-		b, _ := ioutil.ReadAll(r.Body)
+		var ior io.Reader = r.Body
+		ior = io.TeeReader(ior, os.Stderr)
+		b, _ := ioutil.ReadAll(ior)
 		log.Println(string(b))
 
 		next.ServeHTTP(w, r)
