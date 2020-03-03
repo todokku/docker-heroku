@@ -13,6 +13,7 @@ import (
 func main() {
 	port := os.Getenv("PORT")
 	r := mux.NewRouter()
+	r.HandleFunc("/", DefaultHandler)
 	r.HandleFunc("/{wildcard}", DefaultHandler)
 	http.Handle("/", r)
 	err := http.ListenAndServe(fmt.Sprintf(":%s", port), r)
