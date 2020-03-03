@@ -131,11 +131,11 @@ func slackEventCallbackRequest(w http.ResponseWriter, r *http.Request, b []byte)
 	logger.Printf("event.message: %v\n", req.Event.Message)
 
 	if req.Event.Message == "ok" {
-		lastStatus = "LAST_STATUS_OK"
+		lastStatus = "OK"
 	}
 
 	if req.Event.Message == "ng" {
-		lastStatus = "LAST_STATUS_NG"
+		lastStatus = "NG"
 	}
 
 	w.WriteHeader(http.StatusOK)
