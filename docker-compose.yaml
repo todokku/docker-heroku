@@ -15,4 +15,5 @@ services:
       PORT: 80
     volumes:
       - ./go/src:/root/go/src
+      - ./commands:/root/commands
       - /var/run/docker.sock:/var/run/docker.sock
