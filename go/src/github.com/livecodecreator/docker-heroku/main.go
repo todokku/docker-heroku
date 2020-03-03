@@ -45,7 +45,7 @@ func SlackHandler(w http.ResponseWriter, r *http.Request) {
 	scres := SlackChallengeResponse{Challenge: screq.Challenge}
 	dat, _ := json.Marshal(scres)
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintln(w, dat)
+	fmt.Fprintln(w, string(dat))
 }
 
 // DefaultHandler is
