@@ -25,6 +25,11 @@ func main() {
 	}
 }
 
+const (
+	slackEventTypeURLVerification = "url_verification"
+	slackEventTypeCallback        = "event_callback"
+)
+
 // SlackChallengeRequest is
 type SlackChallengeRequest struct {
 	Token     string `json:"token"`
@@ -40,7 +45,7 @@ type SlackChallengeResponse struct {
 // SlackEventCallbackRequest is
 type SlackEventCallbackRequest struct {
 	Type  string                  `json:"type"`
-	Event SlackEventCallbackEvent `json:event`
+	Event SlackEventCallbackEvent `json:"event"`
 }
 
 // SlackEventCallbackEvent is
@@ -82,7 +87,7 @@ func slackChallengeRequest(w http.ResponseWriter, r *http.Request, b []byte) boo
 		return false
 	}
 
-	if req.Type != "url_verification" {
+	if req.Type != slackEventTypeURLVerification {
 		return false
 	}
 	log.Println("Execute ChallengeRequest")
@@ -108,7 +113,7 @@ func slackEventCallbackRequest(w http.ResponseWriter, r *http.Request, b []byte)
 		return false
 	}
 
-	if req.Type != "event_callback" {
+	if req.Type != slackEventTypeCallback {
 		return false
 	}
 	log.Println("Execute EventCallbackRequest")
