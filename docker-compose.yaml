@@ -13,8 +13,8 @@ services:
       - 8080:80
     environment:
       PORT: 80
-      SLACK_TOKEN: TEST
-      SLACK_CHANNEL: TEST
+      SLACK_TOKEN: $SLACK_TOKEN
+      SLACK_CHANNEL: $SLACK_CHANNEL
     # volumes:
     #   - ./go/src:/root/go/src
     #   - ./commands:/root/commands

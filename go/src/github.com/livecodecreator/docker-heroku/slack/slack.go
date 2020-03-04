@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/livecodecreator/docker-heroku/common"
@@ -41,9 +40,8 @@ type slackEventCallbackEvent struct {
 }
 
 type slackLastRaspStatusRequest struct {
-	Token   string `json:"token"`
-	Channel string `json:channel`
-	Text    string `json:text`
+	Channel string `json:"channel"`
+	Text    string `json:"text"`
 }
 
 // SlackHandler is
@@ -82,7 +80,6 @@ func slackChallengeRequestIfNeeded(w http.ResponseWriter, r *http.Request, b []b
 	}
 
 	if req.Type != slackEventTypeURLVerification {
-		log.Printf("type is not %v\n", slackEventTypeURLVerification)
 		return false
 	}
 
@@ -109,7 +106,6 @@ func slackEventCallbackRequestIfNeeded(w http.ResponseWriter, r *http.Request, b
 	}
 
 	if req.Type != slackEventTypeCallback {
-		log.Printf("type is not %v\n", slackEventTypeCallback)
 		return false
 	}
 
@@ -122,19 +118,8 @@ func slackEventCallbackRequestIfNeeded(w http.ResponseWriter, r *http.Request, b
 
 	log.Printf("event.text: %v\n", req.Event.Text)
 
-	// if req.Event.Text == "ok" {
-	// 	common.LastStatus = "OK"
-	// }
-
-	// if req.Event.Text == "ng" {
-	// 	common.LastStatus = "NG"
-	// }
-
-	if strings.Contains(req.Event.Text, "hello rasp") {
-		log.Println("hello rasp matched!")
+	if strings.Contains(req.Event.Text, "hello") && strings.Contains(req.Event.Text, "rasp") {
 		postSlackLastRaspStatus(w, r)
-	} else {
-		log.Println("hello rasp mis matched!")
 	}
 
 	w.WriteHeader(http.StatusOK)
@@ -143,7 +128,7 @@ func slackEventCallbackRequestIfNeeded(w http.ResponseWriter, r *http.Request, b
 
 func postSlackLastRaspStatus(w http.ResponseWriter, r *http.Request) {
 
-	d, err := json.Marshal(common.LastRaspStatus)
+	d, err := json.MarshalIndent(common.LastRaspStatus, "", "    ")
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Printf("%v\n", err)
@@ -151,32 +136,41 @@ func postSlackLastRaspStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	req := slackLastRaspStatusRequest{
-		Token:   os.Getenv("SLACK_TOKEN"),
-		Channel: os.Getenv("SLACK_CHANNEL"),
-		Text:    string(d),
+		Channel: common.Env.SlackChannel,
+		Text:    "```" + string(d) + "```",
 	}
 
-	p, err := json.Marshal(req)
+	b, err := json.Marshal(req)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Printf("%v\n", err)
 		return
 	}
 
-	res, err := http.Post(slackChatPostMessageEndpoint, "application/json", bytes.NewReader(p))
-	if err != nil {
-		log.Printf("%v\n", err)
-		return
+	{
+		req, err := http.NewRequest(http.MethodPost, slackChatPostMessageEndpoint, bytes.NewReader(b))
+		if err != nil {
+			log.Printf("%v\n", err)
+			return
+		}
+
+		authorization := fmt.Sprintf("Bearer %s", common.Env.SlackToken)
+		req.Header.Set("Content-Type", "application/json; charset=utf-8")
+		req.Header.Set("Authorization", authorization)
+
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			log.Printf("%v\n", err)
+			return
+		}
+
+		defer res.Body.Close()
+		b, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			log.Printf("%v\n", err)
+			return
+		}
+
+		log.Printf("slack api response body: %v\n", string(b))
 	}
-
-	log.Printf("slack api response: %+v\n", res)
-
-	defer res.Body.Close()
-	b, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		log.Printf("%v\n", err)
-		return
-	}
-
-	log.Printf("slack api response body: %v\n", string(b))
 }

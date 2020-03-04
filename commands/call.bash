@@ -9,7 +9,7 @@ curl http://localhost:8080/slack -X POST \
     "event": {
         "client_msg_id": "client_msg_id.value",
         "type": "message",
-        "text": "test",
+        "text": "hello rasp",
         "user": "user.value",
         "ts": "1583248428.001900",
         "team": "team.value",
